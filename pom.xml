@@ -9,7 +9,7 @@
     </parent>
 
     <groupId>biz.paluch.logging</groupId>
-    <version>1.15.0</version>
+    <version>1.15.0-patch-1</version>
     <artifactId>logstash-gelf</artifactId>
 
     <name>logstash logging connectors</name>
@@ -37,10 +37,11 @@
     </licenses>
 
     <distributionManagement>
-        <site>
-            <id>site</id>
-            <url>scm:git:git@github.com:mp911de/logging.paluch.biz.git</url>
-        </site>
+      <repository>
+        <id>analyticom-mvn-extlibs-local</id>
+        <name>jfrog.analyticom.de-extlibs</name>
+        <url>https://jfrog.analyticom.de/artifactory/analyticom-mvn-extlibs-local</url>
+      </repository>
     </distributionManagement>
 
     <properties>

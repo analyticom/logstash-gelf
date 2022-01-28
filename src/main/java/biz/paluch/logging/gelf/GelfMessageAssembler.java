@@ -1,19 +1,27 @@
 package biz.paluch.logging.gelf;
 
-import static biz.paluch.logging.gelf.GelfMessageBuilder.newInstance;
-
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.text.SimpleDateFormat;
-import java.util.*;
-import java.util.regex.Pattern;
-
 import biz.paluch.logging.RuntimeContainer;
 import biz.paluch.logging.StackTraceFilter;
 import biz.paluch.logging.gelf.LogMessageField.NamedLogField;
 import biz.paluch.logging.gelf.intern.GelfMessage;
 import biz.paluch.logging.gelf.intern.HostAndPortProvider;
 import biz.paluch.logging.gelf.intern.PoolingGelfMessageBuilder;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Date;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
+
+import static biz.paluch.logging.gelf.GelfMessageBuilder.newInstance;
 
 /**
  * Creates {@link GelfMessage} based on various {@link LogEvent}. A {@link LogEvent} encapsulates log-framework specifics and
@@ -126,13 +134,20 @@ public class GelfMessageAssembler implements HostAndPortProvider {
         }
     }
 
+  public GelfMessage createGelfMessage(LogEvent logEvent) {
+    return createGelfMessage(logEvent,null);  
+  }
+  
     /**
      * Produce a {@link GelfMessage}.
      *
      * @param logEvent the log event
      * @return a new GelfMessage
      */
-    public GelfMessage createGelfMessage(LogEvent logEvent) {
+  public GelfMessage createGelfMessage(LogEvent logEvent, HashMap<String,String> changeStaticFields) {
+    
+    if (changeStaticFields==null)
+      changeStaticFields=new HashMap<>();
 
         GelfMessageBuilder builder = builders != null ? builders.get().recycle() : newInstance();
 
@@ -164,7 +179,7 @@ public class GelfMessageAssembler implements HostAndPortProvider {
                 }
             }
 
-            Values values = getValues(logEvent, field);
+      Values values = getValues(logEvent, field,changeStaticFields);
             if (values == null || !values.hasValues()) {
                 continue;
             }
@@ -200,10 +215,17 @@ public class GelfMessageAssembler implements HostAndPortProvider {
         return builder.build();
     }
 
-    private Values getValues(LogEvent logEvent, MessageField field) {
+  private Values getValues(LogEvent logEvent, MessageField field, HashMap<String,String> changeStaticFields) {
 
         if (field instanceof StaticMessageField) {
-            return new Values(field.getName(), getValue((StaticMessageField) field));
+      String value=null;
+      if (changeStaticFields.containsKey(field.getName())) 
+      {
+        value=changeStaticFields.get(field.getName());
+      }
+      else
+        value=getValue((StaticMessageField) field);
+      return new Values(field.getName(),value);
         }
 
         if (field instanceof LogMessageField) {

@@ -1,16 +1,22 @@
 package biz.paluch.logging.gelf.log4j;
 
-import static biz.paluch.logging.gelf.LogMessageField.NamedLogField.*;
-
-import java.util.Collections;
-
-import org.apache.log4j.AppenderSkeleton;
-import org.apache.log4j.spi.LoggingEvent;
-
 import biz.paluch.logging.RuntimeContainer;
 import biz.paluch.logging.gelf.LogMessageField;
 import biz.paluch.logging.gelf.MdcGelfMessageAssembler;
-import biz.paluch.logging.gelf.intern.*;
+import biz.paluch.logging.gelf.intern.Closer;
+import biz.paluch.logging.gelf.intern.ConfigurationSupport;
+import biz.paluch.logging.gelf.intern.ErrorReporter;
+import biz.paluch.logging.gelf.intern.GelfMessage;
+import biz.paluch.logging.gelf.intern.GelfSender;
+import biz.paluch.logging.gelf.intern.GelfSenderFactory;
+import biz.paluch.logging.gelf.intern.MessagePostprocessingErrorReporter;
+import org.apache.log4j.AppenderSkeleton;
+import org.apache.log4j.spi.LoggingEvent;
+
+import java.util.Collections;
+import java.util.HashMap;
+
+import static biz.paluch.logging.gelf.LogMessageField.NamedLogField.*;
 
 /**
  * Logging-Handler for GELF (Graylog Extended Logging Format). This Java-Util-Logging Handler creates GELF Messages and posts
@@ -80,15 +86,14 @@ public class GelfLogAppender extends AppenderSkeleton implements ErrorReporter {
                 SourceMethodName, SourceLineNumber, SourceSimpleClassName, LoggerName, NDC, Server));
     }
 
-    @Override
-    protected void append(LoggingEvent event) {
+  protected void appendWithChangeStaticFields(LoggingEvent event,HashMap<String,String> changeStaticFields) {
 
         if (event == null) {
             return;
         }
 
         try {
-            GelfMessage message = createGelfMessage(event);
+      GelfMessage message = createGelfMessage(event,changeStaticFields);
             if (!message.isValid()) {
                 reportError("GELF Message is invalid: " + message.toJson(), null);
                 return;
@@ -102,6 +107,13 @@ public class GelfLogAppender extends AppenderSkeleton implements ErrorReporter {
         }
     }
 
+  @Override
+  protected void append(LoggingEvent event) {
+  
+    appendWithChangeStaticFields(event,null);
+    
+  }
+  
     protected GelfSender createGelfSender() {
         return GelfSenderFactory.createSender(gelfMessageAssembler, errorReporter, Collections.<String, Object>emptyMap());
     }
@@ -133,7 +145,11 @@ public class GelfLogAppender extends AppenderSkeleton implements ErrorReporter {
     }
 
     protected GelfMessage createGelfMessage(final LoggingEvent loggingEvent) {
-        return gelfMessageAssembler.createGelfMessage(new Log4jLogEvent(loggingEvent));
+    return gelfMessageAssembler.createGelfMessage(new Log4jLogEvent(loggingEvent),null);
+  }
+  
+  protected GelfMessage createGelfMessage(final LoggingEvent loggingEvent, HashMap<String,String> changeStaticFields) {
+    return gelfMessageAssembler.createGelfMessage(new Log4jLogEvent(loggingEvent),changeStaticFields);
     }
 
     public void setAdditionalFields(String spec) {
