@@ -93,10 +93,18 @@ public class GelfLogAppender extends AppenderSkeleton implements ErrorReporter {
         }
 
         try {
-      GelfMessage message = createGelfMessage(event,changeStaticFields);
+      GelfMessage message = createGelfMessage(event);
             if (!message.isValid()) {
                 reportError("GELF Message is invalid: " + message.toJson(), null);
                 return;
+            }
+            
+            if(changeStaticFields!=null && !changeStaticFields.isEmpty()) {
+              for (String k:message.getAdditonalFields().keySet())
+              {
+                if (changeStaticFields.containsKey(k))
+                  message.getAdditonalFields().put(k,changeStaticFields.get(k));
+              }
             }
 
             if (null == gelfSender || !gelfSender.sendMessage(message)) {
@@ -145,12 +153,8 @@ public class GelfLogAppender extends AppenderSkeleton implements ErrorReporter {
     }
 
     protected GelfMessage createGelfMessage(final LoggingEvent loggingEvent) {
-    return gelfMessageAssembler.createGelfMessage(new Log4jLogEvent(loggingEvent),null);
+    return gelfMessageAssembler.createGelfMessage(new Log4jLogEvent(loggingEvent));
   }
-  
-  protected GelfMessage createGelfMessage(final LoggingEvent loggingEvent, HashMap<String,String> changeStaticFields) {
-    return gelfMessageAssembler.createGelfMessage(new Log4jLogEvent(loggingEvent),changeStaticFields);
-    }
 
     public void setAdditionalFields(String spec) {
         ConfigurationSupport.setAdditionalFields(spec, gelfMessageAssembler);
